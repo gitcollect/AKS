@@ -1,6 +1,6 @@
 /*
     Implementation of AKS algorithm in Pari/GP
-    Authors: Caixia LU - Vincent DALSHEIMER - Mattheiu GIRAUD
+    Authors: DALSHEIMER Vincent - GIRAUD Matthieu - LU Caixia
     Date: 4/28/15
 */
 
