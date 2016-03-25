@@ -1,0 +1,741 @@
+\documentclass[11pt]{article}
+
+\usepackage[francais]{babel}
+\usepackage[utf8]{inputenc}
+
+\usepackage[margin=1.2in]{geometry}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usepackage{slantsc}
+\usepackage{tabularx}
+
+\title{\textbf{Le test de primalité AKS}}
+\author{Vincent \textsc{Dalsheimer}, Matthieu \textsc{Giraud} et Caixia \textsc{Lu}}
+\date{}
+
+\newtheorem{theo}{Théorème}[subsection]
+\newtheorem{prop}{Proposition}[subsection]
+\newtheorem{lemm}{Lemme}[subsection]
+\newtheorem{conject}{Conjecture}[subsection]
+\newtheorem{defi}{Définition}[subsection]
+
+\newcommand{\ppcm}{\mathrm{ppcm}}
+\newcommand{\pgcd}{\mathrm{pgcd}}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+Professeur encadrant : Pascal \textsc{Autissier}.
+\end{center}
+
+\begin{abstract}
+Nous présentons ici la validité du test de primalité AKS découvert en 2002 par  M. Agrawal, N. Kayal et N. Saxena. Le résultat principal de cet algorithme est théorique puisqu'il prouve que le problème de primalité se trouve dans la classe $\mathcal{P}$.
+\end{abstract}
+
+\tableofcontents
+
+\newpage
+
+\vspace*{\fill}
+\begin{minipage}{14cm}
+\begin{center}
+\section*{Notations}
+\end{center}
+La majeure partie des notations utilisées sont usuelles, nous tenons cependant à en préciser quelques-unes :
+\begin{itemize}
+\item L'anneau $\mathbb{Z}/n\mathbb{Z}$ sera noté $\mathbb{Z}_{n}$ afin d'alléger la typographie.
+\item mod $X^r-1,n$ indiquera une égalité dans l'anneau quotient $\mathbb{Z}_n/(X^r-1)$.
+\item Sauf mention contraire, la fonction $\log$ est le logarithme en base $2$.
+\item On notera $\ppcm(m)$ le plus petit commun multiple des $m$ premiers entiers naturels non nuls.
+\item L'ordre de $n$ modulo $r$, dans le groupe multiplicatif, sera noté $\omega_{r}(n)$.
+\item L'indicateur d'Euler pour un entier $n$ sera quant à lui représenté par $\varphi(n)$.
+\item $\vert \mathcal{E} \vert$ désignera le cardinal de l'ensemble $\mathcal{E}$.
+\item $\nu_{p}(n)$ désignera la valuation $p$-adique de $n$.
+\item $\lfloor x \rfloor$ (respectivement $\lceil x \rceil$) représentera la partie entière (respectivement la partie entière par excès) de $x$.
+\end{itemize}
+\end{minipage}
+\vspace*{\fill}
+
+\newpage
+
+% -----------------------------------------------------------------------------
+% INTRODUCTION
+% -----------------------------------------------------------------------------
+
+\section*{Introduction}
+
+En mathématiques, et en cryptologie particulièrement, les nombres premiers jouent un rôle capital. Ainsi, être capable de déterminer si un entier $n$ donné est premier ou non est un problème qui passionne depuis toujours les mathématiciens. Pourtant, après le célèbre crible d'Ératosthène ($3^{\text{ème}}$ siècle avant J.C.) qui consiste en la division de l'entier $n$ par tous les nombres premiers inférieurs ou égaux à $\sqrt{n}$, aucun algorithme réellement plus efficace n'a été trouvé pendant près de $2200$ ans ! Ce n'est qu'à partir des années 60, et la découverte de la théorie de la complexité, que les tests de primalité ont commencé à affluer dans le monde des mathématiques. Toutefois, aucun de ces algorithmes n'était à la fois déterministe, polynomial et inconditionnel. Un algorithme non-déterministe possède un risque d'erreur qui augmente avec le nombre d'itérations dans l'algorithme -- par exemple, le crible d'Atkin -- ; un algorithme non polynomial est beaucoup trop long à exécuter dès qu'on veut l'appliquer à de grands nombres -- par exemple, le crible d'Ératosthène -- ; enfin, un algorithme qui utilise l'hypothèse de Riemann généralisée n'est pas inconditionnel, car celle-ci n'a pour l'instant pas été démontrée -- par exemple, l'algorithme de Miller-Rabin. Ce n'est qu'en août 2002 que le professeur M. Agrawal et deux de ses élèves, N. Kayal et N. Saxena, trouvent enfin un algorithme déterministe, polynomial et inconditionnel permettant de déterminer si un entier $n$ donné est premier ou non.\\
+
+Il est relativement aisé de démontrer -- nous le ferons plus bas -- que cet algorithme, appelé algorithme AKS, est de complexité $O(\log^{10,5} n)$. Néanmoins, il est aussi possible, grâce à des résultats plus poussés de la théorie des nombres, de montrer que la complexité de l'algorithme AKS peut être améliorée jusqu'à atteindre $O(\log^6 n)$. Toutefois, cela reste une complexité assez élevée, et donc un algorithme un peu lent étant donné qu'on estime qu'un algorithme, pour être concrètement utilisable, doit être au plus de complexité $O(\log^3 n)$. Ainsi, cet algorithme n'est actuellement pas réellement utilisable, dans le domaine de la cryptologie notamment. L'intérêt de cet algorithme réside en fait principalement dans le domaine de la théorie, plutôt que dans la pratique. En effet, si l'application informatique de cet algorithme ne peut pas être efficace pour l'instant, l'aspect mathématique est quant à lui d'une ampleur toute autre ; en trouvant cet algorithme, M. Agrawal, N. Kayal et N. Saxena ont réussi à prouver un résultat mathématique des plus importants. Appelons $\mathbb{P}$ le problème de savoir si un entier donné $n$ est premier. Alors $\mathbb{P} \in \mathcal{P}$, à savoir la classe des problèmes décisionnels -- auxquels on peut répondre par oui ou par non -- qui peuvent être résolus par un algorithme déterministe en un temps polynomial, et ce quel que soit l'argument du problème. Si le résultat théorique a indéniablement suscité l'engouement de la communauté scientifique, il est important de garder à l'esprit que l'algorithme sera très certainement amélioré à l'avenir. Il n'est donc pas absurde d'envisager que l'algorithme AKS surpassera un jour les tests de primalité actuels, surtout en cryptologie, où les nombres manipulés doivent être très grands, et qu'aucune erreur sur leur primalité ne peut être tolérée.\\
+
+Étudions maintenant cet algorithme de manière plus précise.
+
+\newpage
+
+% -----------------------------------------------------------------------------
+% PARTIE 1 : L'algorithme AKS
+% -----------------------------------------------------------------------------
+
+\section{L'algorithme AKS}
+
+\subsection{L'idée de l'algorithme}
+
+Le test de primalité \textsc{AKS} repose sur la généralisation suivante du petit théorème de Fermat.
+
+\begin{prop}
+Soient $a$ un entier et $n$ un entier $> 1$ tels que $\pgcd(a,n) = 1$.\\
+$n$ est premier si, et seulement si,
+\begin{equation}
+(X+a)^n \equiv X^n + a \mod n.
+\end{equation}
+\end{prop}
+
+\begin{small}
+\begin{proof}
+$\Rightarrow \forall i \in [\![1,n-1]\!]$, on a $i \tbinom{n}{i} = n \binom{n-1}{i-1}$ et on en déduit que $n \mid i \tbinom{n}{i}$.\\
+Or, on a pour tout $i$, $\pgcd(i,n)=1$ et le lemme de Gauss nous dit que $n \mid \tbinom{n}{i}$. D'après le binôme de Newton, on sait que le coefficient du monôme $X^i$ est $\tbinom{n}{i} a^{n-i}$ et $n \mid \tbinom{n}{i} a^{n-i}$, on a donc $(X+a)^n \equiv X^n + a^n \mod n$.\\
+
+\noindent
+$\Leftarrow$ On suppose que $n$ est composé et s'écrit de la façon suivante : $n=N q^k$, où $q$ est un facteur premier et $k=\nu_{q}(n)$. Alors $q^{k} \nmid \tbinom{n}{q}$, en effet :
+\begin{align*}
+\binom{n}{q}=\frac{n(n-1) \cdots (n-q+1)}{q!}&=\frac{N q^{k} (n-1) \cdots (n-q+1)}{q!}\\
+&=\frac{N q^{k-1} (n-1) \cdots (n-q+1)}{(q-1)!}
+\end{align*}
+Et pour tout $i$ tel que $1 \leqslant i \leqslant q-1$, on a $q^{k} \nmid (N q^{k} - i)$ donc $q^{k} \nmid \tbinom{n}{q}$.\\
+De plus, on sait que $\pgcd(a,N q^{k})=1$ donc $\pgcd(a,q^{k})=1$. On en déduit que $\nu_{q}(a)=0$ et $\pgcd(a^{n-q},q^{k})=1$.\\
+Puisque
+\begin{align*}
+(X+a)^n=\sum_{i=0}^n \binom{n}{i} X^i a^{n-i},
+\end{align*}
+on a $X^q \not\equiv 0 \mod n$ et donc $(X+a)^n \not\equiv (X^n+a) \mod n$.
+\end{proof}
+\end{small}
+
+Ce théorème nous donne ainsi un premier test de primalité. En effet, en choisissant un entier $a$ premier avec l'entier $n$ à tester, il suffit de vérifier si la relation de congruence (1) est vérifiée. Il s'agit alors d'évaluer $n+1$ coefficients ce qui prend un temps en $O(n)$.\\
+
+Afin de réduire le temps d'évaluation de ces coefficients et ainsi rendre l'algorithme plus efficace, nous nous placerons dans l'anneau quotient $\mathbb{Z}_{n}/(X^r-1)$ où $r$ est un entier plus petit que $n$ bien choisi (nous préciserons cette notion plus loin). Il s'agit alors de vérifier l'équation
+\begin{equation}
+(X+a)^n \equiv X^n+a \mod X^r-1,n.
+\end{equation}
+
+On sait d'après la Proposition 1.1.1 que la relation de congruence (2) est clairement vérifiée pour tout $n$ premier et tout entier $r$ et $a$ tel que $\pgcd(a,n)=1$. On peut se demander alors si la relation de congruence (2) est une condition suffisante pour la primalité de $n$. Malheureusement, un problème apparaît puisque (2) peut être également valide pour un entier $n$ composé et quelques valeurs de $a$ et de $r$ tel que $\pgcd(a,n)=1$ comme nous pouvons le voir dans l'exemple suivant.\\
+
+Soit le troisième nombre de Carmichael, $n=1729=7 \cdot 13 \cdot 19$, on remarque que celui-ci vérifie la congruence avec $a=5$ et $r=3$ alors que $n$ n'est clairement pas un nombre premier et que $\pgcd(5,1729)=1$, en effet
+\begin{align*}
+(X+5)^{1729} \equiv X^{1729}+5 \mod X^3-1,1729.
+\end{align*}
+Alors qu'avec $r=5$
+\begin{align*}
+(X+5)^{1729} \not\equiv X^{1729}+5 \mod X^5-1,1729.
+\end{align*}
+
+Ainsi, l'un des buts de cet algorithme est d'étendre la relation de congruence (1) à l'anneau quotient $\mathbb{Z}_{n}/(X^r-1)$. Nous allons dans la suite de cet article prouver qu'une telle extension, de $\mathbb{Z}_{n}$ à $\mathbb{Z}_{n}/(X^r-1)$ pour la relation (1) existe bel et bien. En d'autres termes nous démontrerons qu'il existe un $r$ tel que si un nombre suffisant de $a$ vérifient (2) alors $n$ est un nombre premier.\\
+
+\subsection{Quelques rappels}
+
+Nous donnons dans cette section quelques rappels de combinatoire, sur l'introspection et les polynômes cyclotomiques. Ces rappels seront utilisés dans la section 1.4. afin de démontrer le théorème fondamental de l'algorithme AKS.
+
+\subsubsection{Rappels de combinatoire}
+
+\begin{lemm}
+Soient $p$ et $n$ des entiers $\geqslant 1$. Alors $\sum_{i=p}^n \binom{i}{p} = \binom{n+1}{p+1}$.
+\end{lemm}
+
+\begin{small}
+\begin{proof}
+Raisonnons par récurrence sur $n$.\\
+\noindent
+Si $n=1$, alors $p=1$ et $\tbinom{1}{1}=1=\tbinom{2}{2}$ donc la propriété est vérifiée pour $n=1$.\\
+
+\noindent
+Soit $n \geqslant 2$. Si $p<n$, on a d'après la relation de Pascal
+\begin{align*}
+\tbinom{n+1}{p+1}=\tbinom{n}{p}+\tbinom{n}{p+1}.
+\end{align*}
+\noindent
+Et d'après la relation de récurrence avec $p+1 \leqslant n$
+\begin{align*}
+\tbinom{n+1}{p+1}=\tbinom{n}{p}+\tbinom{n}{p+1}=\tbinom{n}{p}+\tbinom{n-1}{p}+ \dots + \tbinom{p}{p}.
+\end{align*}
+Si $p=n$, $\tbinom{n+1}{p+1}=1=\tbinom{n}{p}$.\\
+\noindent
+La propriété est donc vérifiée.
+\end{proof}
+\end{small}
+
+\begin{lemm}
+Soit $p$ un entier $>0$. Il existe $\tbinom{n+p-1}{n}$ possibilités de choisir $n$ entiers naturels dont la somme est $\leqslant p-1$.
+\end{lemm}
+
+\begin{small}
+\begin{proof}
+Soit $p$ un tel entier fixé. Montrons le résultat par récurrence sur $n$.\\
+
+\noindent
+Si $n=1$, il y a $p$ choix possibles, on a bien $\tbinom{p}{1}=p$.\\
+
+\noindent
+Si $n \geqslant 2$, notons les $n$ nombres considérés $\{e_i\}_{1 \leqslant i \leqslant n}$.\\
+\noindent
+À $e_n$ fixé, et si l'on tient compte de ce que $\sum_{i=1}^n e_i \leqslant p-1$, choisissons les $n-1$ nombres $\{e_i\}_{1 \leqslant i \leqslant n-1}$. Par hypothèse de récurrence, on a $\tbinom{n+p-2}{n-1}$ possibilités si $e_n=0$, $\tbinom{n+p-3}{n-1}$ possibilités si $e_n=1$, $\dots$ et $\tbinom{n-1}{n-1}$ possibilités si $e_n=p-1$.\\
+
+\noindent
+Cela fait donc $\tbinom{n+p-2}{n-1}+\tbinom{n+p-3}{n-1}+ \dots + \tbinom{n-1}{n-1}=\tbinom{n+p-1}{n}$ possibilités au total pour le choix des $n$ entiers d'après le Lemme 1.2.1 précédent.
+\end{proof}
+\end{small}
+
+\subsubsection{Rappels sur l'introspection}
+
+\begin{defi}
+Soit $p$ un nombre premier et $r$ un entier $> 1$. Étant donnés un polynôme $f(X) \in \mathbb{Z}[X]$ et $m$ un entier $> 1$, $m$ est dit introspectif pour $f(X) \mod p$ par rapport à $r$, ou simplement introspectif s'il n'y a pas de confusion possible si
+\begin{align*}
+f(X)^m \equiv f(X^m) \mod X^r-1,p.
+\end{align*}
+\end{defi}
+
+On peut facilement remarquer qu'un entier premier $p$ est introspectif modulo $p$. De plus, on montrera ci-dessous que le produit de deux entiers introspectifs pour un polynôme $f(X)$ est aussi introspectif pour le même polynôme $f(X)$ et que si un entier $m$ est introspectif pour deux polynômes alors $m$ est aussi introspectif pour le produit de ces deux polynômes.\\
+
+\begin{lemm}
+Si $m$ et $m'$ sont introspectifs pour un polynôme $f(X)$, alors $m \cdot m'$ l'est aussi.
+\end{lemm}
+
+\begin{small}
+\begin{proof}
+Puisque $m$ est introspectif pour $f(X)$, on a
+\begin{align*}
+f(X)^{m \cdot m'} \equiv f(X^m)^{m'} \mod X^r-1,p.
+\end{align*}
+
+\noindent
+Comme $m'$ est aussi introspectif pour $f(X)$, on a, en substituant $X$ par $X^m$
+\begin{align*}
+f(X^m)^{m'} &\equiv f(X^{m \cdot m'}) \mod X^{m \cdot r}-1,p\\
+&\equiv f(X^{m \cdot m'}) \mod X^r-1,p \text{puisque $X^r-1 \mid X^{m \cdot r}-1$}
+\end{align*}
+\noindent
+En combinant les deux relations, on obtient
+\begin{align*}
+f(X)^{m \cdot m'} \equiv f(X^{m \cdot m'}) \mod X^r-1,p.
+\end{align*}
+\end{proof}
+\end{small}
+
+\begin{lemm}
+Si $m$ est introspectif pour deux polynômes $f(X)$ et $g(X)$, alors $m$ est aussi introspectif pour le produit $f(X) \cdot g(X)$.
+\end{lemm}
+
+\begin{small}
+\begin{proof}
+En effet, on a
+\begin{align*}
+(f \cdot g )(X)^m &\equiv (f(X) \cdot g(X))^m \mod X^r-1,p\\
+&\equiv f(X)^m \cdot g(X)^m \mod X^r-1,p\\
+&\equiv f(X^m) \cdot g(X^m) \mod X^r-1,p\\
+&\equiv (f \cdot g)(X^m) \mod X^r-1,p.
+\end{align*}
+\end{proof}
+\end{small}
+
+\subsubsection{Rappels sur les polynômes cyclotomiques}
+
+\begin{defi}
+Soit $n$ un entier $>0$. Le $n$-ième polynôme cyclotomique est le produit $Q_r(X)=\prod_{\zeta}^{} (X-\zeta)$ où $\zeta$ décrit les racines primitives $n$-ièmes de l'unité dans $\mathbb{C}$.
+\end{defi}
+
+\begin{lemm}
+$Q_n(X)$ est un polynôme unitaire à coefficients entiers de degré $\varphi(n)$. On a
+\begin{align*}
+X^n-1=\prod_{d \mid n}^{} Q_d(X).
+\end{align*}
+\end{lemm}
+
+\begin{small}
+\begin{proof}
+Chaque racine $n$-ième de l'unité dans $\mathbb{C}$ a un unique ordre multiplicatif qui est un diviseur de $n$ d'après le théorème de Lagrange. Autrement dit, il est possible de partitionner les racines $n$-ièmes de l'unité suivant leur ordre, lesquelles racines sont les zéros de $Q_d(X)$ pour $d \mid n$. On obtient bien la relation annoncée.\\
+
+\noindent
+$Q_n(X)$ est clairement unitaire de degré $\varphi(n)$.\\
+
+\noindent
+Montrons par récurrence sur $n$ que ses coefficients sont entiers. On a $Q_1(X) =X-1 \in \mathbb{Z}[X]$.\\
+Par hypothèse de récurrence, les facteurs du produit, sauf justement $Q_n(X)$, sont à coefficients entiers. On peut alors écrire dans $\mathbb{C}[X]$, $X^n-1=Q_n(X) \cdot P(X)$ où $P$ est un polynôme unitaire de $\mathbb{Z}[X]$.\\
+
+\noindent
+Par unicité de la division euclidienne de $X^n-1$ par $P$ dans $\mathbb{Z}[X]$, on en déduit $Q_n(X) \in \mathbb{Z}[X]$.
+\end{proof}
+\end{small}
+
+\begin{prop}
+Soient $p$ et $r$ des entiers naturels tels que $p$ soit un nombre premier et $\pgcd(p,r)=1$. Le polynôme cyclotomique $Q_r$ se décompose dans $\mathbb{F}_p[X]$ en un produit de polynômes unitaires irréductibles de même degré $k=\omega_r(p)$.
+\end{prop}
+
+\begin{small}
+\begin{proof}
+Soit $h(X)$ un tel facteur de degré $w$. On note $K=\mathbb{F}_p[X]/(h(X))$.\\
+
+\noindent
+$\vert K \vert = p^w$ et tout élément non nul $\alpha \in K$ vérifie $\alpha^{p^w-1}=1$ d'après le théorème de Lagrange. Le corps $K$ contient par construction une racine de $Q_r$ qui est une racine primitive $r$-ième de l'unité, disons $\zeta$.\\
+\noindent
+En effet, notons $\zeta$ la classe de $X$ dans $K$. $\zeta$ est racine de $Q_r$, donc aussi de $X^r-1$ ; on en déduit que $\omega_p(\zeta)$ divise $r$. Supposons que $\omega_p(\zeta)<r$. Alors $\zeta$ est racine de $Q_r$ et de $X^{\omega_p(\zeta)}-1$, donc est racine double de $X^r-1$ (car $Q_r \not = X^{\omega_p(\zeta)}-1$). D'où, $\zeta$ est aussi racine de $rX^{r-1}$ (dérivée de $X^r-1$), ce qui est absurde car $r$ est inversible modulo $p$. Donc $\omega_p(\zeta)=r$ et ainsi $\zeta$ est primitive modulo $p$.\\
+\noindent
+Puisque $\zeta^{p^w-1}=1$, on a $r \mid p^w-1$ donc $p^w \equiv 1 \mod r$ et $w \geqslant k$.\\
+
+\noindent
+Inversement, puisque $\zeta^r=1$ et que $r \mid p^k-1$, on a $\zeta^{p^k}=\zeta$. Le sous-corps de $K$ formé des racines de l'équation $X^{p^k}=X$ contient $\zeta$, donc est égal à $K$ tout entier, étant donné que $\zeta$ est un élément primitif de $K$. On a donc $p^w=\vert K \vert \leqslant p^k$, d'où $w \leqslant k$.\\
+
+\noindent
+D'où le résultat.
+\end{proof}
+\end{small}
+
+\subsection{Résultat préliminaire}
+
+Nous donnons dans cette section une importante proposition qui nous sera nécessaire lors de la démonstration du théorème utilisé pour le test de primalité AKS.
+
+\begin{lemm}
+Il existe un entier $r \leqslant \max \lbrace 3, \lceil \log^5 n \rceil \rbrace$ tel que $\omega_r(n) > \log^2 n$.
+\end{lemm}
+
+\begin{small}
+\begin{proof}
+Si $n=2$, il est clair que $r=3$ satisfait les conditions. Supposons pour la suite de la démonstration que $n>2$, alors $\lceil \log^5 n \rceil > 10$.\\
+
+\noindent
+Soit $R=\lbrace r_i \in \mathbb{N}^\ast$ tel que $\omega_{r_i}(n) \leqslant \log^2 n \rbrace$. $R$ est un ensemble fini puisque si $r > n^{\log^2 n}$ alors $\omega_r(n) > \log^2 n$.\\
+
+\noindent
+Soit
+\begin{align*}
+\Delta := \prod_{i=1}^{\lfloor \log^2 n \rfloor} (n^i - 1)
+\end{align*}
+Pour tout $r_i \in R$, on a $n^{\omega_{r_i}(n)} \equiv 1 \mod r_i$. Ainsi $r_i$ divise $n^{\omega_{r_i}(n)} - 1$ présent dans $\Delta$ par définition.\\
+
+\noindent
+On a
+\begin{align*}
+\Delta &= (n-1)(n^2-1)(n^3-1) \cdots (n^{\lfloor \log^2 n \rfloor}-1)\\
+&<n \cdot n^2 \cdot n^3 \cdots n^{\lfloor \log^2 n \rfloor} = n^{1+2+3+\cdots+\lfloor \log^2 n \rfloor}= n^{\frac{1}{2} \lfloor \log^2 n \rfloor (\lfloor \log^2 n \rfloor + 1)}\\
+&< n^{{\lfloor \log^2 n \rfloor}^2} \text{puisque $\log^2 n > 1$}\\
+&< n^{\lfloor \log^4 n \rfloor}\\
+&< 2^{(\log n) \lfloor \log^4 n \rfloor}\\
+&< 2^{\lceil \log^5 n \rceil}
+\end{align*}
+Soit $m \geqslant 7$, on sait montrer facilement que $\ppcm(m) \geqslant 2^{m}$. Ainsi le plus petit commun multiple des $\lceil \log^5 n \rceil$ premiers nombres entiers non nuls est $\geqslant 2^{\lceil \log^5 n \rceil}$. Si tous les nombres $r$ inférieurs ou égaux à $\lceil \log^5 n \rceil$ vérifiaient $\omega_r(n) \leqslant \log^2 n$, alors $\ppcm(\lceil \log^5 n \rceil)$ diviserait $\Delta$. Or $\Delta < \ppcm(\lceil \log^5 n \rceil)$, on en déduit qu'il existe un entier $r \leqslant \lceil \log^5 n \rceil$ tel que $\omega_r(n) > \log^2 n$.
+\end{proof}
+\end{small}
+
+\subsection{Le théorème de Agrawal, Kayal et Saxena}
+
+Citons pour commencer l'important théorème de M. Agrawal, N. Kayal et N. Saxena.
+
+\begin{theo}[Agrawal, Kayal, Saxena]
+Soit $n$ un entier $>1$ qui n'est pas une puissance d'un nombre premier. Soit $r$ un entier $>1$ premier à $n$, choisi de telle façon que $r \leqslant \max \lbrace 3, \lceil \log^5 n \rceil \rbrace$ et $\omega_r(n) > \log^2 n$. Supposons de plus que $n$ n'ait pas de facteur premier $\leqslant r$ et posons $l=\lfloor \sqrt{\varphi(r)} \log n \rfloor$.\\
+\noindent
+Alors $n$ est premier si, et seulement si, pour tout entier $0 \leqslant a \leqslant l$ la relation de congruence suivante est vérifiée
+\begin{align*}
+(X+a)^n \equiv X^n + a \mod X^r-1,n.
+\end{align*}
+\end{theo}
+
+Notre intention ici est de démontrer ce théorème découvert en juillet 2002. Celui-ci permet en effet, à l'aide d'un $r$ bien choisi (dont l'existence a été prouvée au Lemme 1.3.1) et de plusieurs $a$ déterminés, de caractériser un nombre premier $n$.
+
+\begin{small}
+\begin{proof}
+$\Rightarrow$ Le sens direct de la démonstration est naturel puisque nous avons déjà vu, par la Proposition 1.1.1, que si $n$ est un nombre premier alors la relation de congruence $(X+a)^n \equiv X^n + a \mod X^r-1,n$ est vérifiée pour tout entier $a$ premier à $n$, et particulièrement pour tout entier $0 \leqslant a \leqslant l$. En effet, $\log^2 n < \omega_r(n) < r$, donc $\log n < \sqrt{r}$ et comme $\varphi(r) \leqslant r$, on a $l=\sqrt{\varphi(r)} \log n < r$. Ainsi, si $n$ est premier ($\geqslant r$ par hypothèse), tout entier $0 \leqslant a \leqslant l$ est bien premier avec $n$.
+\end{proof}
+\end{small}
+
+Il nous reste alors à démontrer le sens réciproque, c'est-à-dire à prouver que les relations de congruence $(X+a)^n \equiv X^n + a \mod X^r-1,n$, pour tout entier $0 \leqslant a \leqslant l$, sont suffisantes pour déterminer la primalité de $n$. Pour cela, remarquons certaines choses avant de commencer la démonstration, à proprement parler, du sens réciproque.\\
+
+D'après les hypothèses du théorème, la relation de congruence $(X+a)^n \equiv X^n + a \mod X^r-1,n$ est vérifiée pour tout entier $0 \leqslant a \leqslant l$. Soit $p$ un diviseur premier de $n$, la relation de congruence suivante est alors également vérifiée pour ces mêmes entiers $a$
+\begin{align*}
+(X+a)^n \equiv X^n+a \mod X^r-1,p.
+\end{align*}
+Ceci implique que $n$ est introspectif modulo $p$ pour les $l+1$ polynômes $X, X+1, \dots, X+l$ et comme $p$ est premier, on a d'après la Proposition 1.1.1
+\begin{align*}
+(X+a)^p \equiv X^p+a \mod X^r-1,p.
+\end{align*}
+\noindent
+Donc $n$ et $p$ sont introspectifs pour les polynômes $X+a$ où $0 \leqslant a \leqslant l$.\\
+
+D'après les Lemmes 1.2.3 et 1.2.4, on peut remarquer que $n/p$ est introspectif. En effet, posons $d=p^k$ où $k$ est un entier $>0$. On sait que $(X+a)^n \equiv X^n+a \mod X^r-1,p$. Par Frobenius, on trouve que $(X^d+a)^{n/p} \equiv X^{dn/p} \mod X^r-1,p$ (car $k>0$). On choisit, et on sait qu'il existe puisque $\pgcd(r,p)=1$, $k$ tel que $p^k \equiv 1 \mod r$. On a alors $X^d  \equiv X \mod X^r-1,p$, dont on déduit que $(X+a)^{n/p} \equiv X^{n/p}+a \mod X^r-1,p$.\\
+
+On a alors que tout entier dans l'ensemble $I := \{(n/p)^i \cdot p^j \vert \  i,j \geqslant 0\}$ est introspectif pour tous les polynômes de l'ensemble $P:=\{\prod_{a=0}^{l} (X+a)^{i_a} \vert \  i_a \geqslant 0\}$.\\
+
+Nous pouvons désormais définir deux groupes liés aux ensembles $I$ et $P$ qui joueront un rôle crucial dans la démonstration.\\
+
+Soit $G$ l'un de ces deux groupes où
+\begin{align*}
+G:=\{\ x \mod r \ \vert \  x \in I\ \}.
+\end{align*}
+
+Comme on suppose que $p$ est un facteur premier de $n$ tel que $p>r$, on a $\pgcd(n,r)=\pgcd(p,r)=1$ et donc $G$ est un sous-groupe multiplicatif de $\mathbb{Z}_r$ engendré par $n$ et $p$ modulo $r$. En d'autres termes $G$ est l'ensemble des résidus de $I$ modulo $r$. Soit $t=\vert G \vert$. En fixant $j$ dans l'ensemble $I$, on remarque que $\omega_r(n) \leqslant t$ et puisque $\omega_r(n) > \log^2 n$, on a
+\begin{align*}
+\log^2 n < t.
+\end{align*}
+
+Pour définir le second groupe, nous aurons besoin des rappels sur les polynômes cyclotomiques dans un corps fini donnés dans la sous-section 1.2.2. Soit $Q_r(X)$, le $r$-ième polynôme cyclotomique sur $\mathbb{F}_p$. On sait d'après le Lemme 1.2.5, que $Q_r(X)$ divise $X^r-1$ et qu'il se factorise en produit de polynômes irréductibles de même degré $\omega_r(p)$. Soit $h(X)$ un tel facteur irréductible. Puisque $\omega_r(p)>1$, le degré de $h(X)$ est $>1$.\\
+
+Le second groupe, noté $\mathcal{G}$, est l'ensemble des résidus des polynômes de $P$ modulo $h(X)$ et modulo $p$. Ce groupe est généré par les éléments $X, X+1, \dots, X+l$ dans le corps $F=\mathbb{F}_p[X]/(h(X))$ et c'est un sous-groupe du groupe multiplicatif associé à $F$.\\
+
+Nous pouvons maintenant présenter deux lemmes concernant l'encadrement du cardinal du groupe $\mathcal{G}$ qui nous seront très utiles pour la démonstration du théorème.
+
+\begin{lemm}[Hendrik Lenstra Jr.]
+$\vert \mathcal{G} \vert \geqslant \binom{t+l}{t-1}$
+\end{lemm}
+
+\begin{small}
+\begin{proof}
+Puisque $h(X)$ est un facteur irréductible du $r$-ième polynôme cyclotomique $Q_r(X)$, on sait que $\alpha$, la classe de $X$ dans $F$, est une racine primitive $r$-ième de l'unité dans $F$.\\
+
+\noindent
+Montrons alors qu'à deux polynômes distincts de degrés strictement inférieurs à $t$ dans $P$ correspondent deux résidus différents $\mathcal{G}$. Soient $f(X)$ et $g(X)$ deux tels polynômes dans $P$ et supposons par l'absurde que $f(X) \equiv g(X)$ dans $F$.\\
+
+\noindent
+Soit $m \in I$. Si $f(X) \equiv g(X)$ dans $F$ alors on a aussi $f(X)^m \equiv g(X)^m$ dans $F$. Puisque $m$ est introspectif pour $f(X)$ et $g(X)$ et que $h(X)$ divise $X^r-1$, on a $f(X^m) \equiv g(X^m)$ dans $F$.\\
+
+\noindent
+Ceci implique que $X^m$ est une racine du polynôme $Q(Y)=f(Y)-g(Y)$, et cela pour tout $m \in G$. Comme $\pgcd(m,r)=1$ ($G$ est un sous-groupe de $\mathbb{Z}_r$), chaque $X^m$ est une racine primitive $r$-ième de l'unité. Il y a donc $\vert G \vert = t$ racines distinctes de $Q(Y)$ dans $F$ et ainsi $\deg(Q(Y)) \geqslant t$. Or, le degré de $Q(Y)$ ne peut être que strictement inférieur à $t$ d'après le choix initial des polynômes $f(X)$ et $g(X)$ et donc $f(X) \not \equiv g(X)$ dans $F$.\\
+
+\noindent
+Remarquons que $i \not = j$ dans $\mathbb{F}_p$ pour tout $0 \leqslant i \not = j \leqslant l$ puisque $l=\lfloor \sqrt{\varphi(r)} \log n \rfloor < \sqrt{r} \log n < r$ (car $\omega_r(n) > \log^2 n$) et comme $r<p$, on a bien $l<p$. Ainsi, les polynômes $X, X+1, X+2, \dots, X+l$ sont tous distincts dans $F$.\\
+
+\noindent
+Puisque $\deg(h(X)) >1$, on en déduit que $X+a \not \equiv 0$ dans $F$ pour tout entier $a$ tel que $0 \leqslant a \leqslant l$. Il existe donc au moins $l+1$ polynômes distincts de degré 1 dans $\mathcal{G}$. Par conséquent, nous avons d'après le Lemme 1.3.2 au moins $\tbinom{t+l}{t-1}$ polynômes distincts de degré $<t$ dans $\mathcal{G}$.
+\end{proof}
+\end{small}
+
+\begin{lemm}
+Si $n$ n'est pas une puissance de $p$ alors $\vert \mathcal{G} \vert \leqslant n^{\sqrt{t}}$
+\end{lemm}
+
+\begin{small}
+\begin{proof}
+Soit $\hat I$, le sous-ensemble de $I$ défini par $\hat I=\{(n/p)^i \cdot p^j\ \vert \ 0 \leqslant i,j \leqslant \lfloor \sqrt{t} \rfloor \}$.\\
+
+\noindent
+Si $n$ n'est pas une puissance de $p$, alors l'ensemble $\hat I$ contient $(\lfloor \sqrt{t} \rfloor +1)^2 > t$ entiers distincts. Puisque $\vert G \vert = t$, au moins deux des nombres de $\hat I$ sont égaux modulo $r$. Soient $m_1$ et $m_2$ deux tels nombres tels que $m_1 > m_2$, on a alors $X^{m_1} \equiv X^{m_2} \mod X^r-1,p$.\\
+
+\noindent
+Soit $f(X) \in P$, alors
+\begin{align*}
+f(X)^{m_1} &\equiv f(X^{m_1}) \mod X^r-1,p\\
+&\equiv f(X^{m_2}) \mod X^r-1,p\\
+&\equiv f(X)^{m_2} \mod X^r-1,p\\
+\end{align*}
+
+\newpage
+
+\noindent
+Ce qui implique que $f(X)^{m_1} \equiv f(X)^{m_2}$ dans le corps $F$. De ce fait, on en déduit que $f(X) \in \mathcal{G}$ est une racine du polynôme $Q'(Y)=Y^{m_1}-Y^{m_2}$ dans le corps $F$. Comme $f(X)$ est un élément arbitraire de $\mathcal{G}$, le polynôme $Q'(Y)$ a au moins $\vert \mathcal{G} \vert$ racines distinctes dans $F$.\\
+
+\noindent
+Le degré de $Q'(Y)$ est $m_1 \in \hat I$, on a donc $m_1 \leqslant (\frac{n}{p} \cdot p)^{\lfloor \sqrt{t} \rfloor} \leqslant n^{\lfloor \sqrt{t} \rfloor}$.
+\end{proof}
+\end{small}
+
+Nous avons dorénavant tous les ingrédients nécessaires pour démontrer le sens réciproque du théorème de Agrawal, Kayal et Saxena.
+
+\begin{small}
+\begin{proof}
+$\Leftarrow$ On suppose que pour tout entier $0 \leqslant a \leqslant l$ la relation de congruence suivante est vérifiée
+\begin{align*}
+(X+a)^n \equiv X^n + a \mod X^r-1,n.
+\end{align*}
+
+On a d'après le Lemme 1.4.1
+\begin{align*}
+\vert \mathcal{G} \vert &\geqslant \binom{t+l}{t-1}\\
+&\geqslant \binom{l+1+\lfloor \sqrt{t}\log n \rfloor}{\lfloor \sqrt{t}\log n \rfloor} \ \ \text{puisque $t> \sqrt{t}\log n$}\\
+&\geqslant \binom{2 \lfloor \sqrt{t}\log n \rfloor +1}{\lfloor \sqrt{t}\log n \rfloor}\ \ \text{puisque $l=\lfloor \sqrt{\varphi(r)}\log n \rfloor$}\\
+&> 2^{\lfloor \sqrt{t}\log n \rfloor +1}\ \ \text{puisque $\lfloor \sqrt{t}\log n \rfloor > \lfloor \log^2 n \rfloor \geqslant 1$}\\
+&> n^{\sqrt{t}}.
+\end{align*}
+D'après le Lemme 1.4.2, il existe un entier $k>0$ tel que $n=p^k$. On a supposé dans les hypothèses du théorème que $n$ n'est pas une puissance d'un nombre premier, on a donc nécessairement que $n=p$. Ce qui achève la démonstration du théorème.
+\end{proof}
+\end{small}
+
+\subsection{L'algorithme AKS en pseudo-code}
+
+Nous sommes en mesure d'annoncer l'algorithme AKS en pseudo-code.\\
+
+En effet, d'après le théorème de Agrawal, Kayal et Saxena, on sait que si $n$ n'est pas une puissance d'un nombre premier $p$, que $n$ ne possède pas de diviseur premier inférieur à $r$ où $r$ est le plus entier tel que $\omega_r(n) > \log^2 n$, alors $n$ est premier si, et seulement si, pour tout entier $a$ avec $0 \leqslant a \leqslant l=\lfloor \sqrt{\varphi(r)} \log n \rfloor$, on a
+\begin{align*}
+(X+a)^n \equiv X^n+a \mod X^r-1,n.
+\end{align*}
+
+\newpage
+
+Ainsi, nous avons de façon naturelle l'algorithme du test de primalité AKS.
+
+\begin{center}
+\fbox{
+\begin{minipage}{0.99\textwidth}
+\begin{center}
+\texttt{\underline{Algorithme AKS}}
+\end{center}
+
+\texttt{\underline{Entrée :} $n$ un entier $> 1$.}\\
+\texttt{\underline{Sortie :} "$n$ est PREMIER" ou "$n$ est COMPOSÉ".}\\
+
+\begin{tabularx}{15cm}{cp{14cm}}
+\texttt{1.} & \texttt{Si $\texttt{$n$ = m}^\texttt{k}$ pour m et k des entiers tels que k > 1, alors retourner "$n$ est COMPOSÉ".} \\
+\texttt{2.} & \texttt{Déterminer le plus petit entier $r$ tel que $\omega_r(n)$ > $\log^2 n$.} \\
+\texttt{3.} & \texttt{Si 1 < pgcd(a,$n$) < $n$ pour un entier a < $r$, alors retourner "$n$ est COMPOSÉ".} \\
+\texttt{4.} & \texttt{Si $n \leqslant r$, alors retourner "$n$ est PREMIER".} \\
+\texttt{5.} & \texttt{Pour a = 1 à $l=\lfloor \sqrt{\varphi(r)}\log n \rfloor$ faire :} \\
+ & \texttt{\ \ \ \ \ Si $(X+a)^n \not \equiv X^n+a \mod X^r-1,n$, alors retourner "$n$ est COMPOSÉ".} \\
+\texttt{6.} & \texttt{Retourner "$n$ est PREMIER".}
+\end{tabularx}
+
+\end{minipage}
+}
+\end{center}
+
+Dans l'algorithme, l'étape 5 ne vérifie pas la relation de congruence pour $a=0$, en effet il est évident dans ce cas que $(X+a)^n \equiv X^n+a \mod X^r-1,n$.
+
+\newpage
+
+% -----------------------------------------------------------------------------
+% PARTIE 2 : Complexité de l'algorithme
+% -----------------------------------------------------------------------------
+
+\section{Complexité de l'algorithme AKS}
+
+\subsection{Résultat préliminaire}
+
+\begin{prop}
+Soit $n$ un entier $>1$. Il existe un algorithme polynomial de complexité algébrique $O(\log^4 n)$ déterminant s'il existe des entiers $m$ et $k$, où $k>1$, tel que $n=m^k$.
+\end{prop}
+
+\begin{small}
+\begin{proof}
+S'il existe des entiers $m$ et $k$, où $k>1$, tel que $n=m^k$, alors $2 \leqslant k \leqslant \lfloor \log n \rfloor$. Nous devons alors vérifier pour tout $k$ si la fonction polynomiale $f_k(x)=x^k-n$ possède une racine entière $>1$.\\
+
+\noindent
+Remarquons que la fonction $f_k(x)$ est strictement croissante sur l'intervalle $[0,n]$ et que $f_k(0)=-n<0$ tandis que $f_k(n)=n^k-n>0$. D'après le théorème des valeurs intermédiaires, on sait qu'il existe une, et une seule, solution dans l'intervalle $[0,n]$. Nous n'avons plus qu'à vérifier si cette racine est entière ou non.\\
+
+\noindent
+Pour cela, nous appliquons la recherche par dichotomie. Commençons par déterminer le signe de $f_k(n/2)$ qui revient à calculer $n^k-2^k \cdot n$ avec une complexité algébrique $O(k \cdot \log n)=O(\log^2 n)$. Si $f_k(n/2)=0$, ce qui n'arrive pas en pratique, l'algorithme est terminé et nous avons trouvé la racine $k$-ième de $n$.\\
+
+\noindent
+Supposons que $f_k(n/2)$ est strictement positif, ce qui arrive en pratique. Nous évaluons alors $f_k(x)$ au point milieu de l'intervalle $[0,n/2]$, c'est-à-dire au point $n/4$. Pour cela, nous avons à calculer $n^k-4^k \cdot n$ avec également une complexité algébrique $O(\log^2 n)$. Et si $f_k(n/4) \not = 0$, on continue ainsi de suite.\\
+
+\noindent
+On peut supposer que l'évaluation successive de $f_k(x)$ en les points milieux des intervalles trouvés n'a pas déterminé de racine $k$-ième entière au polynôme $f_k(x)$. Une telle recherche demande $\lfloor \log n \rfloor +1$ évaluations de $f_k(x)$. Ainsi, la recherche d'une racine $k$-ième est en $O(\log n \cdot \log^2 n)=O(\log^3 n)$.\\
+
+\noindent
+Puisque nous devons répéter cette opération pour tout $k$ avec $2 \leqslant k \leqslant \lfloor \log n \rfloor$, la complexité totale de cette algorithme est $O(\log n \cdot \log^3 n)$, c'est-à-dire $O(\log^4 n)$.
+\end{proof}
+\end{small}
+
+\subsection{L'algorithme AKS est polynomial}
+
+Nous allons ici démontrer le résultat majeur de l'article publié en 2002 par M. Agrawal, N. Kayal et N. Saxena qui est
+\begin{align*}
+\mathbb{P} \in \mathcal{P}.
+\end{align*}
+
+\begin{theo}
+Soit $n$ un entier $>1$. L'algorithme appliqué à $n$ s’exécute en un temps polynomial.
+\end{theo}
+
+\begin{small}
+\begin{proof}
+Pour pouver que l'algorithme AKS appliqué à $n$ s'exécute bien en temps polynomial, il suffit de montrer que chaque étape de l'algorithme requiert un temps polynomial. Nous noterons dans ce qui suit
+\begin{align*}
+\Omega(f(n)):=O(f(n) \cdot p(\log(f(n))))\ \  \text{où $p$ est une fonction polynomiale en $\log n$.}
+\end{align*}
+On a donc en particulier $\Omega(\log^k n)=O(\log^k n \cdot p(\log(\log n)))=O(\log^{k+\epsilon} n)$ pour tout $\epsilon>0$.\\
+
+\noindent
+$1^\textsc{ère}$ \textsc{étape.} D'après la Proposition 2.1.1, on sait que cette étape a une complexité $O(\log^4 n)$ et donc que celle-ci est polynomiale.\\
+
+\noindent
+$2^\textsc{ème}$ \textsc{étape}. Afin de vérifier qu'il existe un entier $r>1$ tel que $\omega_r(n) > \log^2 n$, il nous faut tester que $n^k \not \equiv 1 \mod r$ pour tout $k \leqslant \log^2 n$. Ceci requiert, au maximum, $O(\log^2 n)$ calculs de puissances modulo $r$ correspondant à une complexité $\Omega(\log^2 n \cdot \log r)$. D'après le Lemme 1.3.3, nous savons que seulement $O(\log^5 n)$ $r$ différents ont besoin d'être testés. La complexité totale de la seconde étape est donc en $\Omega(\log^7 n)$.\\
+
+\noindent
+$3^\textsc{ème}$ \textsc{étape}. Pour cette étape, nous avons à calculer $r$ fois le plus grand commun diviseur. Sachant qu'un tel calcul a une complexité de $O(\log n)$, la complexité de cette troisième étape est alors de $O(r \cdot \log n)=O(\log^5 n \cdot \log n)=O(\log^6 n)$.\\
+
+\noindent
+$4^\textsc{ème}$ \textsc{étape}. La quatrième étape s'exécute en seulement $O(\log n)$ puisque c'est une comparaison dont la complexité ne dépend que de la longueur de $n$.\\
+
+\noindent
+$5^\textsc{ème}$ \textsc{étape}. Lors de la cinquième étape, $\lfloor \sqrt{\varphi(r)} \log n \rfloor$ relations de congruence sont testées. Chacune requiert $O(\log n)$ multiplications de polynômes de degré $r$ dont les coefficients sont de taille $O(\log n)$. Chaque étape de la boucle peut donc être vérifiée en $\Omega(r\log^2 n)$. La complexité totale de la cinquième étape est donc de $\Omega(r\sqrt{\varphi(r)} \log^3 n)=\Omega(r^{3/2} \log^3 n)=\Omega(\log^{21/2} n)$.\\
+
+La complexité de la cinquième étape domine celle de toutes les autres, d'où le résultat.
+\end{proof}
+\end{small}
+
+\subsection{Améliorations de l'algorithme}
+
+Même si l'intérêt de l'algorithme AKS est actuellement d'ordre théorique, certaines conjectures, si elles s'avèrent vérifiées, lui donnerait également un intérêt pratique. Citons en quelques-unes.
+
+\subsubsection{La conjecture d'Artin}
+
+\begin{conject}
+Soient $m$ et $n$ des entiers $>1$ tels que $n$ ne soit pas un carré parfait. Alors le nombre de nombres premiers $q \leqslant m$ pour lesquels $\omega_q(n)=q-1$ est asymptotique à $A \cdot m / \ln(m)$ avec
+\begin{align*}
+A= \prod_{p \in \mathbb{P}}^{} (1-\frac{1}{p^2-p}) \approx 0,37 , \ \ \ \text{est la constante d'Artin.}
+\end{align*}
+\end{conject}
+
+Si cette conjecture est vérifiée pour $m$ de l'ordre $O(\log^2 n)$, on a immédiatement l'existence de $r$ de l'ordre $O(\log^2 n)$ répondant aux propriétés recherchées. Avec un tel $r$, l'algorithme a alors une complexité en $O(\log^6 n)$.\\
+
+\subsubsection{La conjecture de la densité des premiers de Sophie Germain}
+
+\begin{conject}
+Soit $n$ un entier $\geqslant 2$ et soit $p$ un nombre premier. Le nombre $p \leqslant n$ tel que $2p+1$ soit aussi premier est asymptotique à $2C_2n/\ln^2n$ où
+\begin{align*}
+C_2=\prod_{p \in \mathbb{P}}^{} (1-\frac{1}{(p-1)^2}) \approx 0,66,\ \ \ \text{est la constance des nombres premiers jumeaux.}
+\end{align*}
+\end{conject}
+
+Si cette conjecture est vraie, on en déduit que $r$ est de l'ordre $\Omega(\log^2 n)$. Avec un tel $r$, l'algorithme possède alors une complexité en $\Omega(\log^6 n)$.\\
+
+Notons que des progrès ont été réalisés dans la véracité de cette conjecture. Une étude empirique permet d'ailleurs de trouver que l'algorithme possède une complexité de l'ordre de $1000 \cdot O(\log^6 n)$, ce qui est en parfait accord avec les deux conjectures précédentes.
+
+\subsubsection{Amélioration de l'identité remarquable}
+
+Dans l'algorithme, la boucle exécutée à l'étape 5 doit se réaliser au plus $\lfloor \sqrt{\varphi(r)} \log n \rfloor$ fois afin de s'assurer que le cardinal du groupe $\mathcal{G}$ est dépassé. Le nombre d'itérations de la boucle peut être réduit si l'on montre qu'il existe un système générateur de $\mathcal{G}$ plus petit que $\{X+a\}_{0 \leqslant a \leqslant l}$, ce qui est vraisemblable.
+
+\begin{conject}
+Soient $n$ et $r$ des entiers naturels tels que $r$ est un nombre premier ne divisant pas $n$ et $(X-1)^n \equiv X^n-1 \mod X^r-1,n$. Sous ces conditions, on a
+\begin{center}
+$n$ est premier ou $n^2 \equiv 1 \mod r$.
+\end{center}
+\end{conject}
+
+Si cette conjecture s'avère vraie, la complexité de l'algorithme peut être améliorée jusqu'à $\Omega(\log^3 n)$. Empiriquement, elle fut vérifiée par M. Kayal et N. Saxena pour tout $r \leqslant 100$ et $n \leqslant 10^{10}$.\\
+
+On pourrait alors modifier l'algorithme de sorte à d'abord chercher un entier $r$ qui ne divise pas $n^2-1$ ; un tel $r$ peut alors être trouvé dans l'intervalle $[\![2,4\log n]\!]$ (en utilisant le lemme prouvant que le produit de tous les nombres premiers inférieurs à $n$ est asymptotiquement supérieur à $e^n$). La relation de congruence serait donc à vérifier pour l'entier $r$ ainsi déterminé, ce qui requiert un temps en $\Omega(r\log^2 n)$.\\
+
+Avec cet algorithme modifié, AKS serait très compétitif et utilisable en pratique.
+
+\newpage
+
+% -----------------------------------------------------------------------------
+% PARTIE 3 : Implémentation de l'algorithme
+% -----------------------------------------------------------------------------
+
+\section{Implémentation de l'algorithme}
+
+\subsection{Une première implémentation en SAGE}
+
+Nous nous sommes tournés, au début de l'implémentation, vers le langage de calcul formel \textsc{sage}.\\
+
+La facilité de ce langage nous a permis d'obtenir des résultats rapidement. Bien que l'algorithme soit de complexité $O(\log^{10.5} n)$, nous nous sommes aperçus, lors des tests, de la lenteur de l'algorithme.\\
+
+Nous avons alors pensé à paralléliser les calculs, en particulier à l'étape 5 de l'algorithme, celle demandant le plus de calcul. Testé avec un nombre premier à 7 chiffres, l'algorithme restait très lent et très gourmand en mémoire vive (pour un tel nombre, nous avons pu atteindre une consommation de 80Go de mémoire vive sans aboutir à la fin du calcul).\\
+
+Un tel test de primalité, avec des calculs de puissances de polynômes dans un anneau quotient, ne convient donc pas à un langage de calcul formel comme \textsc{sage}.
+
+\subsection{Une seconde implémentation en Pari/GP}
+
+Suite à l'implémentation de l'algorithme AKS en \textsc{sage}, nous nous sommes orientés vers le langage de programmation \textsc{pari/gp}.\\
+
+Une première version séquentielle de l'algorithme fut tout de suite plus satisfaisante, du point de vue de la rapidité d'exécution, comme de la consommation en mémoire vive. Ainsi, pour un nombre premier à 15 chiffres, l'algorithme met 175 secondes à déterminer sa primalité.\\
+
+Ces résultats étant encourageants, nous avons voulu aussi essayer la parallélisation de l'algorithme avec le langage \textsc{pari/gp}. Pour le même nombre premier à 10 chiffres, nous avons alors obtenu un temps de 4,5 secondes pour déterminer sa primalité.\\
+
+Ci-dessous, nous donnons un tableau récapitulant le temps de calcul nécessaire suivant la quantité de chiffres du nombre et le nombre de c\oe urs utilisés par le processeur.\\
+
+\begin{center}
+\begin{tabular}{|c|cc|}
+\hline
+Nombres de c\oe urs & $p=112\ 272\ 535\ 095\ 293$ & $p=10\ 168\ 938\ 831\ 019\ 335\ 571$\\
+utilisés & (15 chiffres) & (20 chiffres)\\
+\hline
+1 & 175.0s & 1086.2s\\
+8 & 19.5s & 135.0s\\
+24 & 12.3s & 85.6s\\
+48 & 4.5s & 38.0s\\
+\hline
+\end{tabular}
+\end{center}
+
+\newpage
+En terme d'accélération pour le temps de calcul (pour $p=112\ 272\ 535\ 095\ 293$), nous obtenons le graphe suivant :
+
+\begin{center}
+\begin{tikzpicture}
+\draw[->] (0,0) -- (9,0);
+\draw[->] (0,0) -- (0,9);
+\draw (9,0) node[below] {\footnotesize{Nombre de c\oe urs}};
+\draw (0,9) node[above] {\footnotesize{Accélération}};
+
+\node at (1,-0.4) {\small{1}};
+\node at (3,-0.4) {\small{8}};
+\node at (5,-0.4) {\small{24}};
+\node at (7,-0.4) {\small{48}};
+
+\node at (-0.5,1) {\small{1}};
+\node at (-0.6,1.8) {\small{8,97}};
+\node at (-0.7,2.8) {\small{14,23}};
+\node at (-0.7,7.8) {\small{38,89}};
+
+\node at (1,1) {+};
+\node at (3,1.8) {+};
+\node at (5,2.8) {+};
+\node at (7,7.8) {+};
+
+\draw (1,1) -- (3,1.8) -- (5,2.8) -- (7,7.8);
+
+\draw[dotted] (0,1) -- (1,1) -- (1,0);
+\draw[dotted] (0,1.8) -- (3,1.8) -- (3,0);
+\draw[dotted] (0,2.8) -- (5,2.8) -- (5,0);
+\draw[dotted] (0,7.8) -- (7,7.8) -- (7,0);
+
+\end{tikzpicture}
+\end{center}
+
+\subsection{Remarques sur l'implémentation}
+
+Comme nous avons pu le voir dans la section précédente, l'algorithme AKS est relativement long. En effet, la fonction \texttt{isprime()} de \textsc{pari/gp} détermine la primalité des nombres utilisés en une fraction de seconde. Bien sûr, la fonction utilise un algorithme probabiliste mais utilisant en cryptologie des nombres à plus de 100 chiffres, il n'est actuellement pas envisageable d'utiliser l'algorithme AKS.
+
+\newpage
+
+% -----------------------------------------------------------------------------
+% CONCLUSION
+% -----------------------------------------------------------------------------
+
+\section{Conclusion}
+
+Pour l'anecdote, M. Agrawal refusa catégoriquement de déposer un brevet sur l'algorithme malgré les instances de l'Institut Indien de Technologie. De plus, les démonstrations des conjectures mathématiques sus-citées entraîneraient une diminution significative de la complexité de l'algorithme AKS permettant ainsi son utilisation pratique. Ainsi, nous serions alors en possession d'un algorithme de primalité d'une efficacité et d'une sûreté totales, ce qui aurait un apport immense dans le domaine de la cryptologie. Si toutefois aucune de ces conjectures ne venait à être prouvée, ou si un algorithme plus efficace était trouvé dans l'intervalle, cela n'enlèverait rien à la beauté du résultat théorique prouvé par messieurs Agrawal, Kayal et Saxena - $\mathbb{P}$ appartient à  $\mathcal{P}$ - et de la simplicité de sa démonstration. 
+Au vu de celle-ci, nous sommes d'ailleurs en droit de nous demander : Existe-t-il d'autres résultats mathématiques d'importance que nous ignorons dont les démonstrations ne nécessitent pas non plus de connaissances pointues en théorie des nombres ou en algèbre ?
+
+\newpage
+
+\begin{center}
+\begin{Large}
+\textbf{Remerciements}
+\end{Large}
+\end{center}
+
+Nous tenons à remercier M. Pascal Autissier pour sa disponibilité et l'aide précieuse qu'il nous a apportée durant la réalisation de ce projet, notamment sur certaines questions mathématiques que nous avons pu avoir.\\
+
+Nous remercions aussi M. Martial Puygrenier pour son apport dans la parallélisation de l'algorithme AKS sous \textsc{sage}.\\
+
+\vspace{4cm}
+
+\begin{center}
+\begin{Large}
+\textbf{Bibliographie}
+\end{Large}
+\end{center}
+
+\begin{itemize}
+\item \textsc{Agrawal} (Manindra), \textsc{Kayal} (Neeraj), \textsc{Sanexa} (Nitin), \href{http://annals.math.princeton.edu/wp-content/uploads/annals-v160-n2-p12.pdf}{\textit{PRIMES is in P}}, 2002.
+\item \textsc{Élie} (Julien), \href{http://www.trigofacile.com/maths/curiosite/primarite/aks/pdf/algorithme-aks.pdf}{\textit{L'algorithme AKS ou Les nombres premiers sont de classe P}}, 2003.
+\item \textsc{Demazure} (Michel), \textit{Cours d'algèbre}, Cassini, 2008.
+\item \textsc{Baldoni} (M. Welleda), \textsc{Ciliberto} (Ciro), \textsc{Piacentini Cattaneo} (G.M.), \textit{Elementary Number Theory, Cryptography and Codes}, Springer, 2009.
+\end{itemize}
+
+\end{document}
